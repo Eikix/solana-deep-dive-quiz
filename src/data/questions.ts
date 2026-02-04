@@ -15,9 +15,9 @@ export const questions: Question[] = [
     ],
     answerIndex: 2,
     explanation:
-      "Ownership is an access-control rule: only the owning program can write an account’s data (or change its size). Lamports are controlled by the system program and the account’s owner/authority patterns.",
+      "Ownership is an access-control rule: only the owning program can write an account’s data (or change its size). Lamports are part of account state; programs can debit/credit lamports for accounts they own, while wallet transfers are typically enforced by the system program (with a signer).",
     deepDive:
-      "In Solana, ownership is about write authority over data, not key custody. Programs never hold private keys, and lamport movement is enforced by the system program or other program-specific rules.",
+      "In Solana, ownership is about write authority over data, not key custody. Programs never hold private keys, and lamport movement is enforced by the runtime: system program for wallet transfers, or the owning program for its own accounts.",
   },
   {
     id: "Q002",
@@ -28,14 +28,14 @@ export const questions: Question[] = [
     choices: [
       "Only the account owner program can move lamports",
       "Lamports can be moved by any program that has the account as writable",
-      "Lamports are debited/credited only by the system program or program-defined rules",
+      "Lamports move only under runtime rules (system program for signer transfers, or the owning program for its own accounts)",
       "Lamports are not part of account state",
     ],
     answerIndex: 2,
     explanation:
-      "Lamport movements are enforced by the runtime and system program; other programs can only move lamports through allowed instructions (often via CPI to the system program).",
+      "Lamport changes are constrained by the runtime. Wallet transfers follow system program rules (notably signer requirements), and programs can move lamports from accounts they own (e.g., closing/refunding).",
     deepDive:
-      "Programs can implement transfers for tokens they control, but native lamports follow system program rules. Writable access alone doesn’t allow arbitrary lamport changes.",
+      "Writable access alone doesn’t allow arbitrary lamport changes; ownership/signers and lamport-conservation rules still apply.",
   },
   {
     id: "Q003",
@@ -45,15 +45,15 @@ export const questions: Question[] = [
     prompt: "Why do many programs require accounts to be rent-exempt?",
     choices: [
       "To avoid signature verification",
-      "To ensure accounts won’t be reclaimed over time",
+      "To ensure accounts meet the minimum balance for durable state",
       "To reduce compute unit usage",
       "To allow CPI without permission",
     ],
     answerIndex: 1,
     explanation:
-      "Rent-exemption ensures the account has enough lamports to persist without being reclaimed. Programs often rely on long-lived state.",
+      "Rent-exempt (minimum-balance) accounts are the standard for durable program state and avoid rent-related edge cases.",
     deepDive:
-      "Even as rent mechanics evolve, rent-exempt balances remain the standard for durable program state.",
+      "Even with rent collection effectively inactive, programs assume accounts persist indefinitely.",
   },
   {
     id: "Q004",
@@ -250,7 +250,7 @@ export const questions: Question[] = [
     section: "Transactions & Instructions",
     tags: ["transactions", "size"],
     difficulty: "advanced",
-    prompt: "Why can transactions exceed size limits without ALTs?",
+    prompt: "Why can’t legacy transactions exceed size limits without ALTs?",
     choices: [
       "They can’t; size is fixed",
       "They compress account keys automatically",
@@ -449,14 +449,14 @@ export const questions: Question[] = [
     prompt: "Who can change an account’s owner?",
     choices: [
       "Any signer",
-      "Only the current owner program (or system program during creation)",
+      "The system program, under its assign/create rules (with account authorization)",
       "Any program with CPI",
       "Only validators",
     ],
     answerIndex: 1,
     explanation:
-      "The owner can be changed only by the current owner (or system program when creating/assigning).",
-    deepDive: "This protects state from being hijacked by other programs.",
+      "Ownership is set/changed via system program instructions and requires the account to authorize the change. Programs can’t arbitrarily reassign accounts they don’t control.",
+    deepDive: "In practice, ownership is usually set at creation and rarely changed afterward.",
   },
   {
     id: "Q028",
@@ -556,7 +556,7 @@ export const questions: Question[] = [
     ],
     answerIndex: 1,
     explanation:
-      "Read-only accounts are shared-lockable, enabling parallel reads across transactions.",
+      "Read-only accounts use shared/read locks, enabling parallel reads across transactions.",
     deepDive: "Write locks are exclusive; read locks can coexist.",
   },
   {
@@ -682,7 +682,7 @@ export const questions: Question[] = [
     prompt: "What does the SPL Token program define?",
     choices: [
       "Consensus rules",
-      "A standard for fungible tokens and associated accounts",
+      "A standard for fungible tokens and token accounts",
       "A wallet standard",
       "A fee market",
     ],
@@ -764,13 +764,13 @@ export const questions: Question[] = [
     prompt: "What does a token mint account store?",
     choices: [
       "All token balances",
-      "Token metadata, decimals, and mint authority",
+      "Supply, decimals, and mint/freeze authorities",
       "A list of all token accounts",
       "Only the token symbol",
     ],
     answerIndex: 1,
     explanation:
-      "The mint stores global token configuration: decimals, supply, mint/freeze authorities.",
+      "The mint stores global token configuration: supply, decimals, and mint/freeze authorities.",
     deepDive: "Individual balances live in token accounts.",
   },
   {
@@ -1203,9 +1203,8 @@ export const questions: Question[] = [
       "To replace governance",
     ],
     answerIndex: 1,
-    explanation:
-      "Feature gates allow controlled activation of protocol changes with clear rollbacks.",
-    deepDive: "They decouple code shipping from activation.",
+    explanation: "Feature gates allow controlled, staged activation of protocol changes.",
+    deepDive: "They decouple code shipping from on-chain activation.",
   },
   {
     id: "Q074",
@@ -1319,8 +1318,8 @@ export const questions: Question[] = [
     ],
     answerIndex: 0,
     explanation:
-      "CPI to untrusted programs can introduce reentrancy-like patterns if state is not managed carefully.",
-    deepDive: "Use checks-effects-interactions and account locks to mitigate.",
+      "CPI to untrusted programs can introduce reentrancy-like control flow if state is not managed carefully or program IDs aren’t validated.",
+    deepDive: "Use checks-effects-interactions and validate expected program IDs.",
   },
   {
     id: "Q081",
@@ -1482,8 +1481,8 @@ export const questions: Question[] = [
     ],
     answerIndex: 1,
     explanation:
-      "Requesting high compute increases cost; under congestion, it may reduce inclusion likelihood.",
-    deepDive: "Tune compute/fee based on workload.",
+      "Requesting a high CU limit raises max fee (when unit price > 0); under congestion, it can price you out and reduce inclusion likelihood.",
+    deepDive: "Tune CU limit and unit price based on workload.",
   },
   {
     id: "Q091",
@@ -1548,7 +1547,8 @@ export const questions: Question[] = [
       "Because ALTs are validator-only",
     ],
     answerIndex: 1,
-    explanation: "Route-specific ALTs keep tables focused and avoid unused/stale entries.",
+    explanation:
+      "Route-specific ALTs keep tables focused and avoid unused/stale entries (and ALTs are capped in size).",
     deepDive: "This improves reliability and reduces maintenance overhead.",
   },
   {
@@ -1673,13 +1673,12 @@ export const questions: Question[] = [
     prompt: "A PDA collision (two different seed sets producing the same PDA) is…",
     choices: [
       "Common and expected",
-      "Extremely unlikely unless intentionally engineered",
+      "Cryptographically infeasible in practice",
       "How PDAs are created",
       "A feature of PDAs",
     ],
     answerIndex: 1,
-    explanation:
-      "PDA collisions are practically impossible without deliberate construction attempts.",
+    explanation: "PDA collisions are cryptographically infeasible in practice.",
     deepDive: "Seed choices should still be deterministic and unique.",
   },
   {
@@ -1761,7 +1760,7 @@ export const questions: Question[] = [
     ],
     answerIndex: 1,
     explanation:
-      "PoH produces a sequential hash chain; verifying checkpoints is faster than recomputing all steps.",
+      "PoH produces a sequential hash chain/clock; verifying the chained entries is efficient compared to reproducing the leader’s full production pipeline.",
     deepDive: "This enables efficient time-order verification.",
   },
   {
