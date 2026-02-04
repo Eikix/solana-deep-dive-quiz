@@ -1,0 +1,44 @@
+{
+  "name": "solana-deep-dive-quiz",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node node_modules/next/dist/bin/next dev",
+    "build": "node node_modules/next/dist/bin/next build",
+    "start": "node node_modules/next/dist/bin/next start",
+    "lint": "node node_modules/@biomejs/biome/bin/biome lint .",
+    "format": "node node_modules/@biomejs/biome/bin/biome format . --write",
+    "format:check": "node node_modules/@biomejs/biome/bin/biome format .",
+    "typecheck": "node node_modules/typescript/bin/tsc --noEmit",
+    "test": "node node_modules/vitest/vitest.mjs run",
+    "prepare": "node node_modules/simple-git-hooks/cli.js"
+  },
+  "dependencies": {
+    "next": "16.1.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "lint-staged": "^16.1.0",
+    "simple-git-hooks": "^2.11.1",
+    "tailwindcss": "^4",
+    "typescript": "^5",
+    "vitest": "^3.1.4"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "node node_modules/lint-staged/bin/lint-staged.js && pnpm typecheck",
+    "pre-push": "pnpm test"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,css,json}": [
+      "node node_modules/@biomejs/biome/bin/biome check --apply --files-ignore-unknown=true"
+    ]
+  }
+}

@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+:root {
+  --background: #05060a;
+  --foreground: #e5e7eb;
+  --accent: #00ffa3;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: radial-gradient(circle at top left, #101829, transparent 40%),
+    radial-gradient(circle at 20% 20%, #0b402d, transparent 35%), #05060a;
+  color: var(--foreground);
+  min-height: 100vh;
+}
+
+* {
+  scroll-behavior: smooth;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid #34d399;
+  outline-offset: 2px;
+}
+
+button,
+a {
+  touch-action: manipulation;
+}
