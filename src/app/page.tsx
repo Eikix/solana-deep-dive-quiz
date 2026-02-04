@@ -128,6 +128,7 @@ export default function Home() {
     ? session.questions.filter((question) => answers[question.id] !== null).length
     : 0;
   const totalQuestions = session?.questions.length ?? 0;
+  const isLastQuestion = currentIndex === Math.max(totalQuestions - 1, 0);
 
   const revealExplanation =
     config.mode === "learn" ? isAnswered : revealed[currentQuestion?.id ?? ""];
@@ -155,6 +156,15 @@ export default function Home() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }, [currentIndex, session]);
+
+  const handleJumpTo = useCallback(
+    (index: number) => {
+      if (!session) return;
+      setCurrentIndex(index);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [session],
+  );
 
   const handlePrevious = useCallback(() => {
     if (currentIndex > 0) {
@@ -474,6 +484,13 @@ export default function Home() {
                   >
                     {difficultyLabel[currentQuestion.difficulty]}
                   </span>
+                  <button
+                    type="button"
+                    onClick={handleFinish}
+                    className="rounded-full border border-white/10 px-3 py-1 text-xs text-slate-300 transition hover:border-white/30 hover:text-white"
+                  >
+                    End Run
+                  </button>
                 </div>
               </div>
 
@@ -485,84 +502,140 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
-              <div className="flex flex-wrap items-center gap-2">
-                {currentQuestion.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="rounded-full border border-white/10 px-3 py-1 text-xs uppercase tracking-wide text-slate-300"
-                  >
-                    {tag}
-                  </span>
-                ))}
-                <span className="ml-auto rounded-full border border-white/10 px-3 py-1 text-xs text-slate-400">
-                  {currentQuestion.section}
-                </span>
-              </div>
-
-              <h2 className="mt-6 text-2xl font-semibold text-white">{currentQuestion.prompt}</h2>
-
-              <div className="mt-6 grid gap-3">
-                {currentQuestion.choices.map((choice, index) => {
-                  const selected = currentAnswer === index;
-                  const correct = currentQuestion.answerIndex === index;
-                  const reveal = revealExplanation;
-                  const variant = reveal
-                    ? correct
-                      ? "border-emerald-400 bg-emerald-400/10 text-emerald-100"
-                      : selected
-                        ? "border-rose-400 bg-rose-400/10 text-rose-100"
-                        : "border-white/10 text-slate-200"
-                    : selected
-                      ? "border-emerald-400 bg-emerald-400/10 text-emerald-100"
-                      : "border-white/10 text-slate-200 hover:border-emerald-300/50";
-
-                  return (
-                    <button
-                      key={choice}
-                      type="button"
-                      onClick={() => handleSelectAnswer(index)}
-                      className={`rounded-2xl border px-5 py-4 text-left text-sm transition ${variant}`}
+            <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-8">
+                <div className="flex flex-wrap items-center gap-2">
+                  {currentQuestion.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-white/10 px-3 py-1 text-xs uppercase tracking-wide text-slate-300"
                     >
-                      {choice}
-                    </button>
-                  );
-                })}
+                      {tag}
+                    </span>
+                  ))}
+                  <span className="ml-auto rounded-full border border-white/10 px-3 py-1 text-xs text-slate-400">
+                    {currentQuestion.section}
+                  </span>
+                </div>
+
+                <h2 className="mt-6 text-balance text-2xl font-semibold text-white">
+                  {currentQuestion.prompt}
+                </h2>
+
+                <div className="mt-6 grid gap-3">
+                  {currentQuestion.choices.map((choice, index) => {
+                    const selected = currentAnswer === index;
+                    const correct = currentQuestion.answerIndex === index;
+                    const reveal = revealExplanation;
+                    const variant = reveal
+                      ? correct
+                        ? "border-emerald-400 bg-emerald-400/10 text-emerald-100"
+                        : selected
+                          ? "border-rose-400 bg-rose-400/10 text-rose-100"
+                          : "border-white/10 text-slate-200"
+                      : selected
+                        ? "border-emerald-400 bg-emerald-400/10 text-emerald-100"
+                        : "border-white/10 text-slate-200 hover:border-emerald-300/50";
+
+                    return (
+                      <button
+                        key={choice}
+                        type="button"
+                        onClick={() => handleSelectAnswer(index)}
+                        className={`rounded-2xl border px-5 py-4 text-left text-sm transition ${variant}`}
+                      >
+                        {choice}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-6 flex flex-wrap items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleToggleReveal}
+                    className="rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200 transition hover:border-white/30"
+                  >
+                    {revealExplanation ? "Hide Explanation" : "Reveal Explanation"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleFlag}
+                    className={`rounded-full border px-4 py-2 text-sm transition ${
+                      flagged.includes(currentQuestion.id)
+                        ? "border-amber-300/60 bg-amber-400/10 text-amber-100"
+                        : "border-white/10 text-slate-300 hover:border-amber-300/40"
+                    }`}
+                  >
+                    {flagged.includes(currentQuestion.id) ? "Flagged" : "Flag"}
+                  </button>
+                  <span className="text-sm text-slate-400">
+                    {isAnswered ? (isCorrect ? "✅ Correct" : "❌ Incorrect") : "Not answered"}
+                  </span>
+                </div>
+
+                {revealExplanation && (
+                  <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950/60 p-5">
+                    <p className="text-sm font-semibold text-white">Why</p>
+                    <p className="mt-2 text-sm text-slate-300">{currentQuestion.explanation}</p>
+                    {currentQuestion.deepDive && (
+                      <p className="mt-3 text-sm text-slate-400">{currentQuestion.deepDive}</p>
+                    )}
+                  </div>
+                )}
               </div>
 
-              <div className="mt-6 flex flex-wrap items-center gap-3">
-                <button
-                  type="button"
-                  onClick={handleToggleReveal}
-                  className="rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200 transition hover:border-white/30"
-                >
-                  {revealExplanation ? "Hide Explanation" : "Reveal Explanation"}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleFlag}
-                  className={`rounded-full border px-4 py-2 text-sm transition ${
-                    flagged.includes(currentQuestion.id)
-                      ? "border-amber-300/60 bg-amber-400/10 text-amber-100"
-                      : "border-white/10 text-slate-300 hover:border-amber-300/40"
-                  }`}
-                >
-                  {flagged.includes(currentQuestion.id) ? "Flagged" : "Flag"}
-                </button>
-                <span className="text-sm text-slate-400">
-                  {isAnswered ? (isCorrect ? "✅ Correct" : "❌ Incorrect") : "Not answered"}
-                </span>
-              </div>
+              <aside className="rounded-3xl border border-white/10 bg-slate-950/60 p-6">
+                <h3 className="text-lg font-semibold text-white">Question Map</h3>
+                <p className="mt-2 text-sm text-slate-300">
+                  Jump anywhere. In exam mode, colors only show answered/unanswered.
+                </p>
+                <div className="mt-4 grid grid-cols-6 gap-2 md:grid-cols-8">
+                  {session.questions.map((question, index) => {
+                    const selected = answers[question.id];
+                    const answered = selected !== null && selected !== undefined;
+                    const showOutcome = config.mode === "learn";
+                    const correct = answered && selected === question.answerIndex;
+                    const isCurrent = index === currentIndex;
 
-              {revealExplanation && (
-                <div className="mt-6 rounded-2xl border border-white/10 bg-slate-950/60 p-5">
-                  <p className="text-sm font-semibold text-white">Why</p>
-                  <p className="mt-2 text-sm text-slate-300">{currentQuestion.explanation}</p>
-                  {currentQuestion.deepDive && (
-                    <p className="mt-3 text-sm text-slate-400">{currentQuestion.deepDive}</p>
+                    const statusClass = !answered
+                      ? "border-white/10 text-slate-500 hover:border-white/30"
+                      : showOutcome
+                        ? correct
+                          ? "border-emerald-400/60 bg-emerald-400/15 text-emerald-100"
+                          : "border-rose-400/60 bg-rose-400/15 text-rose-100"
+                        : "border-white/20 bg-white/5 text-slate-100";
+
+                    return (
+                      <button
+                        key={question.id}
+                        type="button"
+                        onClick={() => handleJumpTo(index)}
+                        aria-current={isCurrent ? "step" : undefined}
+                        className={`h-10 w-10 rounded-xl border text-xs font-semibold transition ${statusClass} ${
+                          isCurrent ? "ring-2 ring-emerald-400/70" : ""
+                        }`}
+                      >
+                        {index + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-400">
+                  <span className="rounded-full border border-white/10 px-2 py-1">Unanswered</span>
+                  <span className="rounded-full border border-white/10 px-2 py-1">Answered</span>
+                  {config.mode === "learn" && (
+                    <>
+                      <span className="rounded-full border border-emerald-400/40 px-2 py-1 text-emerald-200">
+                        Correct
+                      </span>
+                      <span className="rounded-full border border-rose-400/40 px-2 py-1 text-rose-200">
+                        Incorrect
+                      </span>
+                    </>
                   )}
                 </div>
-              )}
+              </aside>
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -577,21 +650,14 @@ export default function Home() {
                 </button>
                 <button
                   type="button"
-                  onClick={handleNext}
-                  className="rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200 transition hover:border-white/30"
-                  disabled={currentIndex === totalQuestions - 1}
+                  onClick={isLastQuestion ? handleFinish : handleNext}
+                  className="rounded-full bg-emerald-400 px-6 py-2 text-sm font-semibold text-slate-900 transition hover:bg-emerald-300"
                 >
-                  Next
+                  {isLastQuestion ? "Review Results" : "Next"}
                 </button>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleFinish}
-                  className="rounded-full bg-emerald-400 px-6 py-3 text-sm font-semibold text-slate-900 transition hover:bg-emerald-300"
-                >
-                  Finish Run
-                </button>
+              <div className="flex items-center gap-2 text-sm text-slate-400">
+                {isLastQuestion ? "Last question — review when ready." : "Keep going →"}
               </div>
             </div>
           </section>
