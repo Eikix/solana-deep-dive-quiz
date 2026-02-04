@@ -442,7 +442,7 @@ export default function Home() {
             </div>
 
             <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-              <h3 className="text-lg font-semibold text-white">What you’ll get</h3>
+              <h3 className="text-lg font-semibold text-white">What You’ll Get</h3>
               <ul className="mt-4 space-y-3 text-sm text-slate-300">
                 <li>• Detailed explanations and deep-dive notes for every question.</li>
                 <li>• Breakdown by topic + difficulty to expose blind spots.</li>
@@ -451,7 +451,7 @@ export default function Home() {
               </ul>
 
               <div className="mt-6 rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-                <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Bank overview</p>
+                <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Bank Overview</p>
                 <div className="mt-3 grid gap-2 text-sm text-slate-200">
                   {bankStats.sections.slice(0, 6).map(([section, count]) => (
                     <div key={section} className="flex items-center justify-between">
@@ -704,7 +704,7 @@ export default function Home() {
 
             <div className="grid gap-6 md:grid-cols-2">
               <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-                <h3 className="text-lg font-semibold text-white">By section</h3>
+                <h3 className="text-lg font-semibold text-white">By Section</h3>
                 <div className="mt-4 space-y-3 text-sm text-slate-300">
                   {Object.entries(summary.bySection).map(([section, value]) => (
                     <div key={section} className="flex items-center justify-between">
@@ -718,7 +718,7 @@ export default function Home() {
               </div>
 
               <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-                <h3 className="text-lg font-semibold text-white">By difficulty</h3>
+                <h3 className="text-lg font-semibold text-white">By Difficulty</h3>
                 <div className="mt-4 space-y-3 text-sm text-slate-300">
                   {Object.entries(summary.byDifficulty).map(([difficulty, value]) => (
                     <div key={difficulty} className="flex items-center justify-between">
@@ -734,7 +734,7 @@ export default function Home() {
 
             <div className="grid gap-6 md:grid-cols-[1.2fr_0.8fr]">
               <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-                <h3 className="text-lg font-semibold text-white">Weakest topics</h3>
+                <h3 className="text-lg font-semibold text-white">Weakest Topics</h3>
                 <p className="mt-2 text-sm text-slate-300">
                   Focus here until these accuracy bars move up.
                 </p>
@@ -760,13 +760,13 @@ export default function Home() {
               </div>
 
               <div className="rounded-3xl border border-white/10 bg-slate-950/60 p-6">
-                <h3 className="text-lg font-semibold text-white">Your history</h3>
+                <h3 className="text-lg font-semibold text-white">Your History</h3>
                 <HistoryPanel />
               </div>
             </div>
 
             <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-6">
-              <h3 className="text-lg font-semibold text-white">Review flagged questions</h3>
+              <h3 className="text-lg font-semibold text-white">Review Flagged Questions</h3>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
                 {flagged.length === 0 && (
                   <p className="text-sm text-slate-400">No flagged questions this run.</p>
