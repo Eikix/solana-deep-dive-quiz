@@ -590,7 +590,10 @@ export default function Home() {
                 <p className="mt-2 text-sm text-slate-300">
                   Jump anywhere. In exam mode, colors only show answered/unanswered.
                 </p>
-                <div className="mt-4 grid grid-cols-6 gap-2 md:grid-cols-8">
+                <div
+                  className="mt-4 grid grid-cols-6 gap-2 md:grid-cols-8"
+                  style={{ contentVisibility: "auto" }}
+                >
                   {session.questions.map((question, index) => {
                     const selected = answers[question.id];
                     const answered = selected !== null && selected !== undefined;
