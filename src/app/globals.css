@@ -17,6 +17,12 @@ html {
   color-scheme: dark;
 }
 
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
 body {
   background: radial-gradient(circle at top left, #101829, transparent 40%),
     radial-gradient(circle at 20% 20%, #0b402d, transparent 35%), #05060a;

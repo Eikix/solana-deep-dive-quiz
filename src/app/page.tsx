@@ -408,6 +408,7 @@ export default function Home() {
                       id="seed-input"
                       name="seed"
                       autoComplete="off"
+                      spellCheck={false}
                       value={config.seed ?? ""}
                       onChange={(event) =>
                         setConfig((prev) => ({ ...prev, seed: event.target.value }))
@@ -518,7 +519,7 @@ export default function Home() {
                   </span>
                 </div>
 
-                <h2 className="mt-6 text-balance text-2xl font-semibold text-white">
+                <h2 className="mt-6 break-words text-balance text-2xl font-semibold text-white">
                   {currentQuestion.prompt}
                 </h2>
 
@@ -542,7 +543,7 @@ export default function Home() {
                         key={choice}
                         type="button"
                         onClick={() => handleSelectAnswer(index)}
-                        className={`rounded-2xl border px-5 py-4 text-left text-sm transition ${variant}`}
+                        className={`rounded-2xl border px-5 py-4 text-left text-sm break-words transition ${variant}`}
                       >
                         {choice}
                       </button>
@@ -615,7 +616,7 @@ export default function Home() {
                         type="button"
                         onClick={() => handleJumpTo(index)}
                         aria-current={isCurrent ? "step" : undefined}
-                        className={`h-10 w-10 rounded-xl border text-xs font-semibold transition ${statusClass} ${
+                        className={`h-10 w-10 rounded-xl border text-xs font-semibold transition hover:brightness-110 ${statusClass} ${
                           isCurrent ? "ring-2 ring-emerald-400/70" : ""
                         }`}
                       >
