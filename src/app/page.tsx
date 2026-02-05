@@ -40,7 +40,6 @@ export default function Home() {
   const [session, setSession] = useState<QuizSession | null>(null);
   const [answers, setAnswers] = useState<Record<string, number | null>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
   const [flagged, setFlagged] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const poolSize = useMemo(() => {
@@ -93,15 +92,12 @@ export default function Home() {
       const baseQuestions = questionsOverride ?? questionBank;
       const nextSession = buildQuizSession(baseQuestions, nextConfig);
       const nextAnswers: Record<string, number | null> = {};
-      const nextRevealed: Record<string, boolean> = {};
       for (const question of nextSession.questions) {
         nextAnswers[question.id] = null;
-        nextRevealed[question.id] = false;
       }
       setConfig(nextConfig);
       setSession(nextSession);
       setAnswers(nextAnswers);
-      setRevealed(nextRevealed);
       setFlagged([]);
       setCurrentIndex(0);
       setPhase("quiz");
@@ -116,7 +112,6 @@ export default function Home() {
     setAnswers({});
     setCurrentIndex(0);
     setFlagged([]);
-    setRevealed({});
   }, []);
 
   const currentQuestion = session?.questions[currentIndex];
@@ -131,24 +126,15 @@ export default function Home() {
   const totalQuestions = session?.questions.length ?? 0;
   const isLastQuestion = currentIndex === Math.max(totalQuestions - 1, 0);
 
-  const revealExplanation =
-    config.mode === "learn" ? isAnswered : revealed[currentQuestion?.id ?? ""];
+  const revealExplanation = config.mode === "learn" ? isAnswered : false;
 
   const handleSelectAnswer = useCallback(
     (choiceIndex: number) => {
       if (!currentQuestion || isAnswerLocked) return;
       setAnswers((prev) => ({ ...prev, [currentQuestion.id]: choiceIndex }));
-      if (config.mode === "learn") {
-        setRevealed((prev) => ({ ...prev, [currentQuestion.id]: true }));
-      }
     },
-    [config.mode, currentQuestion, isAnswerLocked],
+    [currentQuestion, isAnswerLocked],
   );
-
-  const handleToggleReveal = useCallback(() => {
-    if (!currentQuestion) return;
-    setRevealed((prev) => ({ ...prev, [currentQuestion.id]: !prev[currentQuestion.id] }));
-  }, [currentQuestion]);
 
   const handleNext = useCallback(() => {
     if (!session) return;
@@ -255,10 +241,6 @@ export default function Home() {
             <h1 className="text-balance text-3xl font-semibold text-white md:text-4xl">
               Protocol Mastery Quiz
             </h1>
-            <p className="mt-2 max-w-2xl text-sm text-slate-300">
-              A long-form, replayable quiz for serious Solana learners. Mix modes, filter topics,
-              and get explanations after every answer.
-            </p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -556,13 +538,6 @@ export default function Home() {
                 <div className="mt-6 flex flex-wrap items-center gap-3">
                   <button
                     type="button"
-                    onClick={handleToggleReveal}
-                    className="rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200 transition hover:border-white/30"
-                  >
-                    {revealExplanation ? "Hide Explanation" : "Reveal Explanation"}
-                  </button>
-                  <button
-                    type="button"
                     onClick={handleFlag}
                     className={`rounded-full border px-4 py-2 text-sm transition ${
                       flagged.includes(currentQuestion.id)
@@ -572,9 +547,11 @@ export default function Home() {
                   >
                     {flagged.includes(currentQuestion.id) ? "Flagged" : "Flag"}
                   </button>
-                  <span className="text-sm text-slate-400">
-                    {isAnswered ? (isCorrect ? "✅ Correct" : "❌ Incorrect") : "Not answered"}
-                  </span>
+                  {isAnswered && (
+                    <span className="text-sm text-slate-400">
+                      {isCorrect ? "✅ Correct" : "❌ Incorrect"}
+                    </span>
+                  )}
                 </div>
 
                 {revealExplanation && (
@@ -781,10 +758,11 @@ export default function Home() {
                   return (
                     <div key={id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
                       <p className="text-sm font-semibold text-white">{question.prompt}</p>
-                      <p className="mt-2 text-xs text-slate-400">
-                        Your answer:{" "}
-                        {selected !== null ? question.choices[selected] : "Not answered"}
-                      </p>
+                      {selected !== null && (
+                        <p className="mt-2 text-xs text-slate-400">
+                          Your answer: {question.choices[selected]}
+                        </p>
+                      )}
                       <p className="mt-2 text-xs text-emerald-200">
                         Correct: {question.choices[question.answerIndex]}
                       </p>
