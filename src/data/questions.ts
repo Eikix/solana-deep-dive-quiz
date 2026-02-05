@@ -6,36 +6,36 @@ export const questions: Question[] = [
     section: "Accounts & Ownership",
     tags: ["accounts", "ownership"],
     difficulty: "foundation",
-    prompt: "What does it mean for a program to ‘own’ an account?",
+    prompt: "What does it mean for a program to “own” an account?",
     choices: [
-      "The program can spend the account’s lamports",
       "The program can sign for the account",
-      "The program is allowed to mutate the account’s data",
-      "The account is locked to the program’s runtime",
+      "The program can always transfer lamports out of the account",
+      "Only the program is allowed to write/resize the account’s data",
+      "The account cannot be passed to other programs",
     ],
     answerIndex: 2,
     explanation:
-      "Ownership is an access-control rule: only the owning program can write an account’s data (or change its size). Lamports are part of account state; programs can debit/credit lamports for accounts they own, while wallet transfers are typically enforced by the system program (with a signer).",
+      "Ownership is about write authority over account data (and typically resizing). It does not grant signing power, and it doesn’t imply the account can’t be used in CPI.",
     deepDive:
-      "In Solana, ownership is about write authority over data, not key custody. Programs never hold private keys, and lamport movement is enforced by the runtime: system program for wallet transfers, or the owning program for its own accounts.",
+      "Think of owner as “who interprets and may mutate this data.” Signing is a transaction-level proof, and lamport movement is constrained by runtime rules and explicit authorization patterns.",
   },
   {
     id: "Q002",
     section: "Accounts & Ownership",
     tags: ["accounts", "lamports"],
     difficulty: "foundation",
-    prompt: "Which statement about lamports is correct?",
+    prompt: "Which statement about native lamports is most accurate?",
     choices: [
-      "Only the account owner program can move lamports",
-      "Lamports can be moved by any program that has the account as writable",
-      "Lamports move only under runtime rules (system program for signer transfers, or the owning program for its own accounts)",
-      "Lamports are not part of account state",
+      "Any program can move lamports as long as the account is writable",
+      "Only the account’s owner program can ever change its lamports",
+      "Lamport changes are constrained by runtime invariants; user transfers require proper authorization (often via the system program)",
+      "Lamports are stored only in sysvars, not in accounts",
     ],
     answerIndex: 2,
     explanation:
-      "Lamport changes are constrained by the runtime. Wallet transfers follow system program rules (notably signer requirements), and programs can move lamports from accounts they own (e.g., closing/refunding).",
+      "Lamports are part of account state, but the runtime enforces invariants and authorization. Writable alone doesn’t let arbitrary debits happen; typical wallet transfers follow system-program rules (signer/authority).",
     deepDive:
-      "Writable access alone doesn’t allow arbitrary lamport changes; ownership/signers and lamport-conservation rules still apply.",
+      "A good mental model: who may write data (owner), who authorizes actions (signers), and what state transitions are allowed (runtime + program rules) are separate axes.",
   },
   {
     id: "Q003",
@@ -51,9 +51,9 @@ export const questions: Question[] = [
     ],
     answerIndex: 1,
     explanation:
-      "Rent-exempt (minimum-balance) accounts are the standard for durable program state and avoid rent-related edge cases.",
+      "Programs often assume state must persist long-term. Rent-exempt funding is the common “durable state” convention and avoids rent-related edge cases or future policy changes.",
     deepDive:
-      "Even with rent collection effectively inactive, programs assume accounts persist indefinitely.",
+      "Even if rent collection isn’t something most devs feel day-to-day, funding state accounts adequately remains best practice for long-lived protocol state.",
   },
   {
     id: "Q004",
@@ -164,18 +164,18 @@ export const questions: Question[] = [
     section: "Transactions & Instructions",
     tags: ["transactions", "instructions"],
     difficulty: "foundation",
-    prompt: "An instruction in Solana consists of…",
+    prompt: "What uniquely defines an instruction (vs the whole transaction)?",
     choices: [
-      "Only an opcode",
-      "Program ID + accounts list + instruction data",
-      "Program ID + blockhash only",
-      "Account list + signatures only",
+      "A fee payer + recent blockhash",
+      "Program ID + account metas + instruction data",
+      "A set of signatures over the message",
+      "A list of all accounts touched across all programs",
     ],
     answerIndex: 1,
     explanation:
-      "Each instruction targets a program and includes the accounts it will read/write plus arbitrary data for that program.",
+      "An instruction targets a single program and includes the accounts it will access plus arbitrary data interpreted by that program.",
     deepDive:
-      "This structure makes Solana’s runtime generic; each program defines its own instruction schema.",
+      "Transactions bundle instructions plus signatures, blockhash, and fee payer. Instructions are the runtime’s generic “call a program with these accounts and bytes.”",
   },
   {
     id: "Q011",
@@ -200,17 +200,18 @@ export const questions: Question[] = [
     section: "Transactions & Instructions",
     tags: ["transactions", "signers"],
     difficulty: "advanced",
-    prompt: "What is a signer in Solana?",
+    prompt: "What does it mean for an account to be marked as a signer in Solana?",
     choices: [
-      "An account that must be writable",
-      "An account whose signature was verified on the transaction",
-      "An account owned by the system program",
-      "An account that can be mutated by any program",
+      "The account is writable",
+      "The account’s private key signed the transaction message",
+      "The account is owned by the system program",
+      "The account can be mutated by any program",
     ],
     answerIndex: 1,
     explanation:
-      "A signer is simply an account whose signature is present and verified on the transaction.",
-    deepDive: "Signers prove authorization, but ownership and writability still matter.",
+      "A signer is an account whose signature over the transaction message was verified. It says nothing by itself about ownership or writability.",
+    deepDive:
+      "Common bug: treating signer as allowed to write. On Solana these are orthogonal: signer proves authorization, owner controls data writes, and writability controls locking.",
   },
   {
     id: "Q013",
@@ -250,16 +251,17 @@ export const questions: Question[] = [
     section: "Transactions & Instructions",
     tags: ["transactions", "size"],
     difficulty: "advanced",
-    prompt: "Why can’t legacy transactions exceed size limits without ALTs?",
+    prompt: "Why do legacy transactions struggle with very large account lists?",
     choices: [
-      "They can’t; size is fixed",
-      "They compress account keys automatically",
-      "They use shorter program IDs",
-      "They are segmented across multiple slots",
+      "The message format has a hard size limit, and each account key costs bytes",
+      "Legacy transactions cannot include more than one instruction",
+      "Legacy transactions compress account keys automatically",
+      "The runtime rejects transactions that touch more than 10 accounts",
     ],
     answerIndex: 0,
-    explanation: "Legacy transactions are size-limited; that’s why v0 + ALTs exist.",
-    deepDive: "ALTs are the first major solution for large account lists.",
+    explanation:
+      "Legacy message size is limited and account keys dominate size. That’s why v0 transactions + ALTs exist: they reduce the byte cost of large account lists.",
+    deepDive: "ALTs solve address bytes, not compute, CPI depth, or overall runtime limits.",
   },
   {
     id: "Q016",
@@ -285,15 +287,16 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "What is a Program-Derived Address (PDA)?",
     choices: [
-      "A keypair controlled by a program",
-      "A deterministic address off the ed25519 curve",
-      "A random address used for temporary state",
-      "A validator’s vote account",
+      "A deterministic address derived from seeds + program ID, designed so no private key exists for it",
+      "A keypair generated deterministically by the program at runtime",
+      "A special address that is automatically a signer in any transaction",
+      "A validator-controlled account used for voting",
     ],
-    answerIndex: 1,
+    answerIndex: 0,
     explanation:
-      "PDAs are deterministic addresses derived from seeds + program ID and are intentionally off-curve.",
-    deepDive: "Being off-curve ensures no private key exists for that address.",
+      "PDAs are deterministic and derived from seeds + program ID; they’re constructed so they aren’t backed by a normal private key.",
+    deepDive:
+      "Programs don’t have keys. They prove PDA derivation (seeds + bump) to the runtime when they need PDA signing semantics.",
   },
   {
     id: "Q018",
@@ -317,17 +320,18 @@ export const questions: Question[] = [
     section: "PDAs & Signers",
     tags: ["pda", "security"],
     difficulty: "advanced",
-    prompt: "If an attacker can guess the PDA seeds, what happens?",
+    prompt: "If an attacker can guess your PDA seeds, what is the real risk?",
     choices: [
-      "They can sign for the PDA",
-      "They can steal PDA funds",
-      "They can recompute the address but still cannot sign",
-      "They can change the program ID",
+      "They can sign for the PDA and drain funds",
+      "They can derive the address, but still can’t sign; risk comes from your program’s missing address/owner/init checks",
+      "They can change the PDA’s program ID and take ownership",
+      "They can force the PDA to become on-curve and steal the private key",
     ],
-    answerIndex: 2,
+    answerIndex: 1,
     explanation:
-      "Knowing seeds lets you derive the address, but only the owning program can sign via invoke_signed.",
-    deepDive: "Security is enforced by the runtime, not by seed secrecy.",
+      "Seed knowledge lets anyone compute the address. That’s not enough to sign. The danger is when programs don’t validate expected addresses/owners/initialization and accept attacker-supplied accounts.",
+    deepDive:
+      "Defend with: derive expected PDA inside the program, compare addresses, check owner, check discriminator/init flags, and use canonical seeds.",
   },
   {
     id: "Q020",
@@ -384,16 +388,18 @@ export const questions: Question[] = [
     section: "Programs & CPI",
     tags: ["cpi", "programs"],
     difficulty: "foundation",
-    prompt: "What is CPI in Solana?",
+    prompt: "In CPI (cross-program invocation), what is the most important mental model?",
     choices: [
-      "A consensus protocol",
-      "Calling another program from within a program",
-      "The instruction data format",
-      "The fee market",
+      "CPI lets a program call another program, but only with accounts/privileges it already has",
+      "CPI lets a program fetch any account from RPC during execution",
+      "CPI automatically makes the callee’s accounts writable",
+      "CPI is only possible when both programs share the same upgrade authority",
     ],
-    answerIndex: 1,
-    explanation: "CPI is cross-program invocation—program-to-program calls within one transaction.",
-    deepDive: "This is Solana’s composability primitive, similar to contract-to-contract calls.",
+    answerIndex: 0,
+    explanation:
+      "CPI is program-to-program calling within a transaction, but the caller cannot conjure accounts or privileges it wasn’t given.",
+    deepDive:
+      "This is the composability rule that prevents privilege escalation: everything the callee touches must be passed explicitly and must respect the outer transaction’s privileges.",
   },
   {
     id: "Q024",
@@ -417,12 +423,18 @@ export const questions: Question[] = [
     section: "Programs & CPI",
     tags: ["programs", "bpf"],
     difficulty: "foundation",
-    prompt: "Solana programs are compiled to…",
-    choices: ["WASM", "sBPF/ELF", "JVM bytecode", "LLVM IR"],
+    prompt: "What do validators actually execute when they run a Solana program?",
+    choices: [
+      "The program’s Rust source code",
+      "An sBPF (Solana BPF) ELF binary verified and run in a sandbox",
+      "WebAssembly (WASM) bytecode",
+      "JVM bytecode via a VM embedded in the validator",
+    ],
     answerIndex: 1,
     explanation:
-      "On-chain programs are compiled to sBPF (Solana BPF) and deployed as ELF binaries.",
-    deepDive: "The runtime verifies and executes these in a sandbox.",
+      "On-chain programs are compiled to sBPF and deployed as ELF; the runtime verifies and executes them in a sandbox.",
+    deepDive:
+      "This is why syscalls exist: programs can’t access OS primitives directly; they call into runtime-provided capabilities.",
   },
   {
     id: "Q026",
@@ -547,17 +559,18 @@ export const questions: Question[] = [
     section: "Runtime & Parallelism",
     tags: ["parallelism", "accounts"],
     difficulty: "foundation",
-    prompt: "Read-only accounts…",
+    prompt: "Read-only accounts in a transaction…",
     choices: [
-      "Are never locked",
-      "Can be read in parallel by multiple transactions",
-      "Can be written if a program decides",
-      "Require a signer",
+      "Are not locked at all",
+      "Use shared/read locks, allowing many concurrent readers across transactions",
+      "Become writable if the program chooses",
+      "Must be signers",
     ],
     answerIndex: 1,
     explanation:
-      "Read-only accounts use shared/read locks, enabling parallel reads across transactions.",
-    deepDive: "Write locks are exclusive; read locks can coexist.",
+      "Read-only accounts can be accessed in parallel by multiple transactions because they take shared/read locks. Only writable accounts take exclusive locks.",
+    deepDive:
+      "This is why marking accounts writable “just in case” harms throughput: you convert shared locks into exclusive conflicts.",
   },
   {
     id: "Q034",
@@ -679,33 +692,35 @@ export const questions: Question[] = [
     section: "Token Programs",
     tags: ["tokens", "spl"],
     difficulty: "foundation",
-    prompt: "What does the SPL Token program define?",
+    prompt: "What does the SPL Token program standardize on Solana?",
     choices: [
-      "Consensus rules",
-      "A standard for fungible tokens and token accounts",
-      "A wallet standard",
-      "A fee market",
+      "Consensus rules for validators",
+      "Fungible token mint + token account state transitions (mint, transfer, burn, approve)",
+      "Wallet seed phrase formats",
+      "Transaction fee markets",
     ],
     answerIndex: 1,
-    explanation: "SPL Token defines the on-chain standard for fungible tokens and token accounts.",
-    deepDive: "It’s the equivalent of ERC-20 on Solana.",
+    explanation: "It standardizes token mechanics and account layouts for fungible tokens.",
+    deepDive:
+      "Like ERC-20 in concept, but implemented via explicit accounts (mint + token accounts) and program-owned state.",
   },
   {
     id: "Q042",
     section: "Token Programs",
     tags: ["tokens", "ata"],
     difficulty: "foundation",
-    prompt: "What is an Associated Token Account (ATA)?",
+    prompt: "What makes an Associated Token Account (ATA) valuable for UX?",
     choices: [
-      "A PDA that stores program data",
-      "A deterministic token account derived from wallet + mint",
-      "A validator-owned token account",
-      "A sysvar",
+      "It is the only type of token account that can hold SPL tokens",
+      "It is a deterministic token account address for (wallet, mint, token program), so wallets can “find” balances predictably",
+      "It is a sysvar maintained by the runtime",
+      "It automatically signs transfers for the wallet",
     ],
     answerIndex: 1,
     explanation:
-      "An ATA is a deterministic token account derived from a wallet address and a token mint.",
-    deepDive: "It simplifies wallet UX by standardizing token account addresses.",
+      "ATAs are deterministic, so clients don’t need discovery/indexing to locate the “standard” account for a wallet’s token balance.",
+    deepDive:
+      "The deterministic address idea is why ATAs reduce UX friction—but you still must use the correct token program (classic vs Token-2022).",
   },
   {
     id: "Q043",
@@ -761,17 +776,18 @@ export const questions: Question[] = [
     section: "Token Programs",
     tags: ["tokens", "mint"],
     difficulty: "foundation",
-    prompt: "What does a token mint account store?",
+    prompt: "What does a token mint account represent?",
     choices: [
-      "All token balances",
-      "Supply, decimals, and mint/freeze authorities",
-      "A list of all token accounts",
-      "Only the token symbol",
+      "A ledger of all token-holder balances",
+      "Global configuration + authorities + supply metadata for a token type",
+      "A wallet’s token portfolio",
+      "An RPC index of token transfers",
     ],
     answerIndex: 1,
     explanation:
-      "The mint stores global token configuration: supply, decimals, and mint/freeze authorities.",
-    deepDive: "Individual balances live in token accounts.",
+      "Mints define the token type (decimals, supply, authorities). Individual balances live in token accounts.",
+    deepDive:
+      "This separation (mint vs token accounts) is why “one balance per wallet” is not implicit on Solana—ATAs make it conventional.",
   },
   {
     id: "Q047",
@@ -872,33 +888,36 @@ export const questions: Question[] = [
     section: "Consensus, PoH & Slots",
     tags: ["poh", "slots"],
     difficulty: "foundation",
-    prompt: "What does a slot represent in Solana?",
+    prompt: "In Solana, a “slot” is best understood as…",
     choices: [
       "A finalized block",
-      "A leader’s time window to produce a block",
-      "A validator vote",
+      "A scheduled leader window in which a leader produces entries/blocks",
       "A single transaction",
+      "A validator vote message",
     ],
     answerIndex: 1,
-    explanation: "A slot is a period where a designated leader is expected to produce a block.",
-    deepDive: "Slots create the schedule for block production.",
+    explanation:
+      "Slots are time windows assigned to leaders. Blocks/entries are produced during slots; finality is a separate concept.",
+    deepDive:
+      "This is why leaders can influence ordering within their slot: scheduling is explicit.",
   },
   {
     id: "Q054",
     section: "Consensus, PoH & Slots",
     tags: ["poh", "ordering"],
     difficulty: "advanced",
-    prompt: "Proof of History (PoH) primarily provides…",
+    prompt: "Proof of History (PoH) is most usefully thought of as…",
     choices: [
-      "Finality",
-      "A verifiable ordering of events",
-      "Validator slashing",
-      "Stake delegation",
+      "A finality gadget",
+      "A verifiable ordering/clock primitive used to sequence events efficiently",
+      "A slashing system for dishonest validators",
+      "A randomness beacon for leader selection",
     ],
     answerIndex: 1,
     explanation:
-      "PoH is a verifiable clock that orders events without requiring global consensus on time.",
-    deepDive: "It helps validators verify ordering faster than recomputing from scratch.",
+      "PoH provides a verifiable sequence that helps order events without requiring everyone to agree on timestamps.",
+    deepDive:
+      "PoH helps with ordering/verification speed; consensus/finality still comes from stake-weighted voting.",
   },
   {
     id: "Q055",
@@ -967,16 +986,18 @@ export const questions: Question[] = [
     section: "Validator Pipeline & Networking",
     tags: ["tpu", "network"],
     difficulty: "foundation",
-    prompt: "The TPU (Transaction Processing Unit) is responsible for…",
+    prompt: "If your transaction never seems to reach a leader, which subsystem is most relevant?",
     choices: [
-      "Voting",
-      "Receiving and processing incoming transactions",
-      "Storing snapshots",
-      "Gossiping cluster info only",
+      "TPU (ingest/schedule path)",
+      "TVU (replay/verification path)",
+      "Rent sysvar",
+      "BPF loader",
     ],
-    answerIndex: 1,
-    explanation: "The TPU ingests transactions, validates them, and schedules execution.",
-    deepDive: "It’s the hot path for transaction entry.",
+    answerIndex: 0,
+    explanation:
+      "TPU is the hot path for transaction ingestion and forwarding toward leaders for inclusion.",
+    deepDive:
+      "TVU is about replaying blocks you received; TPU is about getting your tx into the pipeline.",
   },
   {
     id: "Q060",
@@ -1031,16 +1052,18 @@ export const questions: Question[] = [
     section: "Validator Pipeline & Networking",
     tags: ["gossip", "cluster"],
     difficulty: "foundation",
-    prompt: "What is gossip used for?",
+    prompt: "Gossip is primarily used to…",
     choices: [
-      "Transaction execution",
-      "Cluster information propagation",
-      "Fee estimation",
-      "Program upgrades",
+      "Execute transactions",
+      "Propagate cluster metadata (peers, votes, leader schedule info, etc.)",
+      "Store account state snapshots",
+      "Perform CPI routing",
     ],
     answerIndex: 1,
-    explanation: "Gossip spreads cluster metadata like peer info and leader schedule.",
-    deepDive: "It’s essential for decentralized discovery.",
+    explanation:
+      "Gossip is the cluster’s “who’s here and what’s happening” propagation layer, not the execution engine.",
+    deepDive:
+      "It’s why nodes can discover each other and share state-of-the-network info without centralized coordination.",
   },
   {
     id: "Q064",
@@ -1179,16 +1202,17 @@ export const questions: Question[] = [
     section: "Upgrades, Feature Gates & SIMDs",
     tags: ["simd", "process"],
     difficulty: "foundation",
-    prompt: "What is a SIMD?",
+    prompt: "What makes SIMDs useful in the Solana ecosystem?",
     choices: [
-      "A validator command",
-      "A Solana Improvement Document proposal",
-      "A token standard",
-      "A consensus message",
+      "They are code that runs on validators to activate features",
+      "They are proposal documents that track design rationale and lifecycle (review → accepted → implemented → activated)",
+      "They are mandatory for program upgrades",
+      "They are a token standard for governance",
     ],
     answerIndex: 1,
-    explanation: "SIMDs are proposal documents describing protocol and ecosystem changes.",
-    deepDive: "They track ideas through Review, Accepted, Implemented, Activated, etc.",
+    explanation:
+      "SIMDs are the design/process artifact; activation is handled separately via feature gates.",
+    deepDive: "This teaches “paper accepted” ≠ “feature live,” which is core in Solana operations.",
   },
   {
     id: "Q073",
@@ -1964,5 +1988,155 @@ export const questions: Question[] = [
     answerIndex: 1,
     explanation: "Activated indicates the feature gate has been turned on and is live.",
     deepDive: "Implemented only means the code exists in a release.",
+  },
+  {
+    id: "Q121",
+    section: "Anchor Pitfalls & Security Invariants",
+    tags: ["anchor", "pda", "security", "seeds"],
+    difficulty: "advanced",
+    prompt:
+      'You have two PDA account types in the same program: Product uses seeds = [b"product", product_name.as_ref()], and Bid uses seeds = [product_name.as_ref(), user.key().as_ref()]. What’s the most realistic failure mode if you don’t carefully namespace/structure seeds?',
+    choices: [
+      "Nothing: different seed arrays always produce different PDAs",
+      "An attacker can craft inputs that collide across types, blocking creation or confusing initialization flows",
+      "An attacker can derive the PDA private key and sign",
+      "The runtime inserts delimiters between seeds, so collisions are impossible",
+    ],
+    answerIndex: 1,
+    explanation:
+      "Seeds are processed as bytes, and variable-length parts can create ambiguous boundaries across different seed arrays. The invariant is: PDA uniqueness is only as strong as your seed schema. Use clear namespaces and unambiguous boundaries (fixed-size components or explicit length prefixes) so different account types cannot collide.",
+    deepDive:
+      "Seed hygiene checklist: unique static prefix per account type, avoid raw strings without length separation, prefer fixed-size components (pubkeys, hashes), and keep a stable namespace/version in the seed set.",
+  },
+  {
+    id: "Q122",
+    section: "Anchor Pitfalls & Security Invariants",
+    tags: ["anchor", "pda", "design", "security"],
+    difficulty: "advanced",
+    prompt: "Which seed design best prevents unintended collisions between different PDA types?",
+    choices: [
+      "Include unique static prefixes per PDA type and length-delimit any variable-length parts",
+      "Use only user-controlled strings because they’re “unique enough”",
+      "Reuse the same prefix everywhere for consistency",
+      "Rely on bump alone for uniqueness",
+    ],
+    answerIndex: 0,
+    explanation:
+      "The invariant is that PDAs are only distinct if your seed schema makes them distinct. Unique prefixes + unambiguous boundaries prevent cross-type collisions even when user input is adversarial.",
+    deepDive:
+      'Practical schema: [b"type", version, fixed-size ids...] then length-delimited user strings if absolutely needed.',
+  },
+  {
+    id: "Q123",
+    section: "Anchor Pitfalls & Security Invariants",
+    tags: ["anchor", "remaining_accounts", "security"],
+    difficulty: "advanced",
+    prompt:
+      "Your instruction iterates over ctx.remaining_accounts to distribute rewards. What must you assume about these accounts by default?",
+    choices: [
+      "Anchor applied the same constraints as in the Accounts struct",
+      "They’re trusted because they were provided by the client SDK",
+      "They have none of Anchor’s protections; you must validate owner, type, address/PDA, and initialization yourself",
+      "They cannot be writable, so no harm is possible",
+    ],
+    answerIndex: 2,
+    explanation:
+      "Treat remaining accounts as raw, untrusted AccountInfo. The invariant is: Anchor only validates what you declared in the Accounts struct; everything else needs explicit checks.",
+    deepDive:
+      "Validation checklist: expected owner/program, discriminator/type, exact address or PDA derivation, initialized/liveness, and program/mint IDs for token flows.",
+  },
+  {
+    id: "Q124",
+    section: "Anchor Pitfalls & Security Invariants",
+    tags: ["anchor", "remaining_accounts", "tokens", "security"],
+    difficulty: "advanced",
+    prompt:
+      "You accept a dynamic list of token accounts in remaining_accounts and transfer tokens to each. Which check would most directly prevent account-substitution theft?",
+    choices: [
+      "Verify each token account’s mint and that its owner matches the intended recipient from validated state, not user input",
+      "Mark the list accounts as read-only",
+      "Increase compute budget",
+      "Use confirmed commitment instead of finalized",
+    ],
+    answerIndex: 0,
+    explanation:
+      "The invariant is: payouts must be bound to verified recipients, not to whatever accounts the caller supplies. Validate the token account’s owner/mint against trusted state and derive expected addresses when possible.",
+    deepDive:
+      "Design pattern: store recipient pubkeys in program state, derive ATAs from those pubkeys + mint, and verify the provided accounts match those ATAs.",
+  },
+  {
+    id: "Q125",
+    section: "Anchor Pitfalls & Security Invariants",
+    tags: ["anchor", "cpi", "security", "program-id"],
+    difficulty: "advanced",
+    prompt:
+      "Your Anchor instruction takes a lending_program: AccountInfo and CPI-calls it, forwarding the caller (Signer) and system_program. What’s the highest-risk assumption?",
+    choices: [
+      "CPI cannot escalate privileges, so this is safe",
+      "If it compiles, the program is trusted",
+      "If lending_program isn’t pinned, the caller can swap in a malicious program that uses the forwarded signer",
+      "Only PDAs can be abused in CPI",
+    ],
+    answerIndex: 2,
+    explanation:
+      "This is a confused-deputy risk: signers remain signers during CPI, so an untrusted program can use the forwarded authority for unintended actions. The invariant is: never forward signer authority to an unverified program ID.",
+    deepDive:
+      "Mitigations: pin program IDs, avoid dynamic CPI targets, and minimize which signers/writable accounts you forward.",
+  },
+  {
+    id: "Q126",
+    section: "Anchor Pitfalls & Security Invariants",
+    tags: ["anchor", "cpi", "invoke_signed", "pda", "security"],
+    difficulty: "advanced",
+    prompt:
+      "Your program uses invoke_signed to act with a PDA authority, and the CPI target program is user-provided. Why is this especially dangerous?",
+    choices: [
+      "invoke_signed makes the PDA’s private key visible",
+      "You are delegating PDA authority to an attacker-controlled program if the target isn’t trusted",
+      "PDAs can only sign once per slot",
+      "The system program rejects PDAs",
+    ],
+    answerIndex: 1,
+    explanation:
+      "invoke_signed effectively loans your PDA authority to the callee. If the target is untrusted, you’ve handed it the ability to act as your PDA within the accounts you pass.",
+    deepDive:
+      "Audit rule: any invoke_signed CPI with user-controlled program IDs is a red flag. Pin the target and restrict what the PDA is allowed to do.",
+  },
+  {
+    id: "Q127",
+    section: "Anchor Pitfalls & Security Invariants",
+    tags: ["anchor", "cpi", "reload", "security"],
+    difficulty: "advanced",
+    prompt:
+      "You CPI to token::mint_to, then immediately read ctx.accounts.mint.supply to enforce a limit. What’s the risk?",
+    choices: [
+      "None; Anchor account structs always reflect CPI side effects",
+      "You’re reading stale deserialized data unless you reload, so the limit check can be bypassed",
+      "The supply becomes finalized-only after CPI",
+      "The CPI invalidates the transaction signature",
+    ],
+    answerIndex: 1,
+    explanation:
+      "Anchor caches deserialized data in Account<'info, T>. CPI mutates the underlying AccountInfo bytes, not the cached struct. The invariant: after any CPI that may mutate an account you later read, reload before using its fields.",
+    deepDive:
+      "Rule of thumb: CPI → read fields from the same account struct → call reload() first.",
+  },
+  {
+    id: "Q128",
+    section: "Anchor Pitfalls & Security Invariants",
+    tags: ["anchor", "cpi", "reload", "audit"],
+    difficulty: "advanced",
+    prompt: "In code review, where should you look for missing reload() calls?",
+    choices: [
+      "Anywhere a CPI is followed by reads of fields from Account<'info, T> that the CPI could have changed",
+      "Only in instructions that call the system program",
+      "Only when using ALTs",
+      "Only for read-only accounts",
+    ],
+    answerIndex: 0,
+    explanation:
+      "The auditing heuristic is simple: if a CPI can mutate an account and the code reads from its cached struct afterward, a reload is required to re-deserialize from bytes.",
+    deepDive:
+      "Search pattern: `CPI` then `account.field` without an intervening `account.reload()`.",
   },
 ];
