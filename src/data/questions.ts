@@ -26,10 +26,10 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "Which statement about native lamports is most accurate?",
     choices: [
-      "Any program can move lamports if the account is marked writable",
-      "Lamport balance is just another data field controlled by the owner program",
-      "Lamport balance changes are constrained by runtime invariants; user transfers require proper authorization, typically via the system program",
-      "Lamport balances are derived from sysvars and not stored on accounts",
+      "Lamport balance is treated like account data; the owner program can change it directly",
+      "Any writable account lets the invoked program debit lamports without extra checks",
+      "Lamport balance changes are constrained by runtime invariants; transfers require proper authorization, typically via the system program",
+      "Lamports are derived from sysvar state rather than stored on the account itself",
     ],
     answerIndex: 2,
     explanation:
@@ -44,10 +44,10 @@ export const questions: Question[] = [
     difficulty: "advanced",
     prompt: "Why do many programs require accounts to be rent-exempt?",
     choices: [
-      "To make future reallocations free after the first allocation",
+      "To avoid per-transaction rent charges when writing account data",
       "To ensure accounts meet the minimum balance for durable state",
-      "To skip write locks on long-lived state accounts",
-      "To bypass owner checks during CPI",
+      "To allow reallocations without ever topping up lamports",
+      "To make accounts writable without the owning program",
     ],
     answerIndex: 1,
     explanation:
@@ -60,12 +60,12 @@ export const questions: Question[] = [
     section: "Accounts & Ownership",
     tags: ["accounts", "data"],
     difficulty: "advanced",
-    prompt: "Which account data change is always permitted?",
+    prompt: "Which statement about account data mutation is correct?",
     choices: [
-      "Any program that receives a writable AccountInfo may mutate its data",
-      "The owning program may mutate or resize the account data",
-      "Any signer in the transaction may mutate that account’s data",
-      "A program may resize a read-only account if it is also a signer",
+      "Any program may mutate data if the account is marked writable in the message",
+      "Only the owning program may mutate or resize data; writability just provides the lock",
+      "Any signer in the transaction may mutate data for accounts it signs",
+      "Read-only accounts can be resized if the system program is included",
     ],
     answerIndex: 1,
     explanation:
@@ -80,10 +80,10 @@ export const questions: Question[] = [
     difficulty: "advanced",
     prompt: "What is the practical effect of declaring an account as writable in a transaction?",
     choices: [
-      "It becomes a signer for the duration of the transaction",
-      "It receives a higher compute-unit budget",
-      "It is placed under an exclusive write lock during execution",
-      "It can be accessed by programs without being passed in the account list",
+      "It grants signer status for the duration of execution",
+      "It raises the compute-unit limit for instructions touching it",
+      "It is placed under an exclusive write lock for the transaction",
+      "It allows CPI targets to write it even if it was read-only",
     ],
     answerIndex: 2,
     explanation:
@@ -97,10 +97,10 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "Sysvar accounts are best described as…",
     choices: [
-      "Writable system accounts used for rent collection",
-      "Read-only accounts containing network/runtime data",
-      "User-created accounts for program configuration",
-      "Special PDAs owned by the system program",
+      "Writable system accounts that collect rent each slot",
+      "Read-only accounts containing runtime metadata like clock and epoch",
+      "User-owned accounts used for program configuration",
+      "Program-derived addresses that store network state",
     ],
     answerIndex: 1,
     explanation:
@@ -114,10 +114,10 @@ export const questions: Question[] = [
     difficulty: "expert",
     prompt: "Why do many programs store an account discriminator at the start of account data?",
     choices: [
-      "To reduce account size",
-      "To prevent signature replay",
-      "To identify account type/layout quickly",
-      "To enable CPI",
+      "To check rent-exemption status before deserializing",
+      "To prevent replay by tying data to a recent blockhash",
+      "To identify account type/layout quickly before deserialization",
+      "To validate PDA seeds during CPI",
     ],
     answerIndex: 2,
     explanation:
@@ -131,10 +131,10 @@ export const questions: Question[] = [
     difficulty: "expert",
     prompt: "What is a typical reason to keep account data layouts fixed and versioned?",
     choices: [
-      "To avoid paying priority fees",
+      "To keep PDA derivations stable across program upgrades",
       "To allow schema evolution without breaking old state",
-      "To make accounts signer-authorized",
-      "To reduce account locking",
+      "To avoid reallocating and topping up lamports when fields change",
+      "To allow zero-copy deserialization without any version checks",
     ],
     answerIndex: 1,
     explanation:
@@ -149,10 +149,10 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "Why must all accounts a transaction will touch be listed up front?",
     choices: [
-      "To allow the runtime to prefetch account data from the ledger",
-      "To allow the runtime to precompute signatures without account metas",
+      "To let the runtime precompute the account lock set and schedule execution",
+      "To allow signature verification without loading account metadata",
       "To enable parallel execution via deterministic lock ordering",
-      "To allow programs to add new accounts during execution",
+      "To allow instructions to append new accounts during execution",
     ],
     answerIndex: 2,
     explanation:
@@ -166,10 +166,10 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "What uniquely defines an instruction (vs the whole transaction)?",
     choices: [
-      "A fee payer plus a recent blockhash",
+      "A program id plus instruction data and a recent blockhash",
       "A program id, its account metas, and instruction data bytes",
-      "A set of signatures over the transaction message",
-      "The union of all accounts touched by every instruction",
+      "Account metas plus signatures for those accounts",
+      "A fee payer plus the union of all accounts touched",
     ],
     answerIndex: 1,
     explanation:
@@ -186,8 +186,8 @@ export const questions: Question[] = [
     choices: [
       "Earlier instructions remain committed if a later one fails",
       "All instructions succeed or the transaction is rolled back as a unit",
-      "Each instruction commits independently within the same transaction",
-      "Atomicity depends on the cluster type (devnet vs mainnet)",
+      "State changes apply instruction by instruction and are not rolled back on failure",
+      "Atomicity applies only within each program, not across programs",
     ],
     answerIndex: 1,
     explanation:
@@ -204,8 +204,8 @@ export const questions: Question[] = [
     choices: [
       "The account is marked writable in the message",
       "A signature by that account’s private key was verified for the message",
-      "The account is owned by the system program",
-      "The account can be mutated by any program",
+      "The account’s owner program approved the instruction via CPI",
+      "The account is authorized to pay transaction fees",
     ],
     answerIndex: 1,
     explanation:
@@ -220,10 +220,10 @@ export const questions: Question[] = [
     difficulty: "advanced",
     prompt: "Why does Solana require a recent blockhash in a transaction?",
     choices: [
-      "To select the slot leader for execution",
+      "To allow validators to deterministically order transactions across forks",
       "To limit transaction lifetime and prevent replay across slots",
-      "To increase parallelism by ordering account locks",
-      "To identify the fee payer for the transaction",
+      "To allow account locks to be reused across slots",
+      "To prove the fee payer without an explicit signer",
     ],
     answerIndex: 1,
     explanation: "Recent blockhashes bound transaction validity and prevent indefinite replay.",
@@ -238,7 +238,7 @@ export const questions: Question[] = [
     choices: [
       "Increase the compute-unit cap for a transaction",
       "Provide a durable recent blockhash so a transaction can be submitted later",
-      "Allow CPI calls without extra signatures",
+      "Hold address lookup tables for legacy messages",
       "Store program-owned state data",
     ],
     answerIndex: 1,
@@ -254,9 +254,9 @@ export const questions: Question[] = [
     prompt: "Why do legacy transactions struggle with very large account lists?",
     choices: [
       "The legacy message has a hard size limit and each account key consumes bytes",
-      "Legacy messages restrict how many instructions can be included",
-      "Legacy messages require address lookup tables to list accounts",
-      "Legacy runtime rejects transactions with a fixed max account count",
+      "Legacy messages restrict the number of unique account metas per instruction",
+      "Legacy messages require duplicating account keys for each instruction",
+      "Legacy runtime caps the number of signatures regardless of message size",
     ],
     answerIndex: 0,
     explanation:
@@ -270,7 +270,7 @@ export const questions: Question[] = [
     difficulty: "advanced",
     prompt: "What does a Compute Budget instruction primarily control?",
     choices: [
-      "Rent rate for accounts",
+      "Maximum instruction count per transaction",
       "Number of required signers",
       "Compute unit limit and unit price for the transaction",
       "Blockhash lifetime and expiration",
@@ -288,8 +288,8 @@ export const questions: Question[] = [
     prompt: "What is a Program-Derived Address (PDA)?",
     choices: [
       "A deterministic address derived from seeds and program id that is off-curve, so no private key exists",
-      "A keypair deterministically generated by the program at runtime and stored on-chain",
-      "A normal keypair whose public key is marked as a signer by the runtime",
+      "A deterministic keypair generated at deploy time and stored in program data",
+      "An on-curve address where seed knowledge implies signing authority",
       "A validator-controlled account used for voting and rewards",
     ],
     answerIndex: 0,
@@ -307,7 +307,7 @@ export const questions: Question[] = [
     choices: [
       "It generates a temporary private key during execution",
       "It provides PDA seeds and bump to invoke_signed for runtime verification",
-      "It reuses the fee payer’s signature",
+      "It reuses the fee payer’s signature as a surrogate",
       "It hashes the recent blockhash into a signature",
     ],
     answerIndex: 1,
@@ -324,7 +324,7 @@ export const questions: Question[] = [
     choices: [
       "They can sign for the PDA because seed knowledge implies key control",
       "They can derive the address, but signing still depends on your program’s validation",
-      "They can reassign the PDA to a different program id via CPI",
+      "They can create the PDA with a different owner and override your program",
       "They can flip the PDA on-curve and recover a private key",
     ],
     answerIndex: 1,
@@ -343,7 +343,7 @@ export const questions: Question[] = [
       "To increase compute budget for PDA creation",
       "To find an off-curve derivation for the seed set",
       "To allow CPI through the system program",
-      "To prevent rent collection on PDA accounts",
+      "To encode rent-exempt status in the address",
     ],
     answerIndex: 1,
     explanation:
@@ -392,7 +392,7 @@ export const questions: Question[] = [
     choices: [
       "CPI lets a program invoke another program using the accounts and privileges it already has",
       "CPI lets a program fetch arbitrary accounts from RPC during execution",
-      "CPI upgrades the callee’s account metas to writable",
+      "CPI lets the callee upgrade read-only accounts to writable if it owns them",
       "CPI requires both programs to share an upgrade authority",
     ],
     answerIndex: 0,
@@ -408,7 +408,7 @@ export const questions: Question[] = [
     difficulty: "advanced",
     prompt: "What is a key CPI privilege rule?",
     choices: [
-      "CPI can escalate signer privileges beyond the outer message",
+      "CPI can add signer privileges if the callee owns the account",
       "CPI passes along equal or lower signer/writable privileges",
       "CPI ignores account metadata when invoked",
       "CPI requires the system program in every account list",
@@ -425,10 +425,10 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "What do validators actually execute when they run a Solana program?",
     choices: [
-      "The program’s Rust source compiled just-in-time by validators",
+      "An sBPF program interpreted directly from Rust source in the program account",
       "An sBPF (Solana BPF) ELF binary verified and run in a sandbox",
-      "A WASM module executed by a validator-hosted runtime",
-      "JVM bytecode executed by a validator-embedded VM",
+      "An sBPF ELF that validators JIT to native code without loader verification",
+      "An sBPF ELF embedded inside a WASM container run by the validator",
     ],
     answerIndex: 1,
     explanation:
@@ -443,7 +443,7 @@ export const questions: Question[] = [
     difficulty: "advanced",
     prompt: "What enables upgradable programs on Solana?",
     choices: [
-      "The system program plus a program upgrade flag",
+      "The system program plus an upgrade flag in the program account",
       "The BPF Loader Upgradeable program",
       "The vote program and vote account authority",
       "Feature gates enforced by cluster governance",
@@ -462,7 +462,7 @@ export const questions: Question[] = [
     choices: [
       "Any signer listed in the transaction",
       "The system program under its assign/create rules (with account authorization)",
-      "Any program that performs CPI",
+      "The current owner program via CPI without additional authorization",
       "Validator software during block production",
     ],
     answerIndex: 1,
@@ -561,10 +561,10 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "Read-only accounts in a transaction…",
     choices: [
-      "Take no locks and can be mutated freely",
+      "Take exclusive locks but are treated as read-only in the program",
       "Use shared/read locks, allowing concurrent readers across transactions",
-      "Are upgraded to writable if the program requests it",
-      "Must appear as signers to be readable",
+      "Use shared locks only within a transaction, but block readers across transactions",
+      "Require signer privilege to be read by the program",
     ],
     answerIndex: 1,
     explanation:
@@ -579,10 +579,10 @@ export const questions: Question[] = [
     difficulty: "advanced",
     prompt: "Compute units (CUs) are best thought of as…",
     choices: [
-      "A proxy for network bandwidth consumption",
+      "A proxy for instruction count across the transaction",
       "A rough measure of CPU work for a transaction",
-      "A limit on heap memory allocation",
-      "A count of unique accounts referenced",
+      "A per-account byte quota for data writes",
+      "A fixed limit on heap allocation per program",
     ],
     answerIndex: 1,
     explanation:
@@ -598,8 +598,8 @@ export const questions: Question[] = [
     choices: [
       "Execution pauses and resumes in the next slot",
       "Execution aborts and state changes are rolled back",
-      "The runtime raises the limit for that transaction",
-      "Only the last instruction is reverted",
+      "The runtime raises the limit and charges a higher fee automatically",
+      "Only the failing instruction is reverted; earlier changes remain",
     ],
     answerIndex: 1,
     explanation: "Exceeding the compute limit fails the transaction atomically.",
@@ -612,10 +612,10 @@ export const questions: Question[] = [
     difficulty: "expert",
     prompt: "Why are syscalls used in Solana programs?",
     choices: [
-      "To bypass runtime safety checks and access OS calls",
+      "To invoke other programs without CPI overhead",
       "To access runtime-provided functionality like hashing or sysvars",
-      "To perform outbound network calls from the program",
-      "To set priority fees for the transaction",
+      "To read account data beyond its declared size",
+      "To open network sockets from the program",
     ],
     answerIndex: 1,
     explanation:
@@ -629,10 +629,10 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "Priority fees are…",
     choices: [
-      "A flat fee paid to the system program per transaction",
+      "A flat fee per signature charged by the system program",
       "An optional extra paid per compute unit",
-      "A requirement for vote transactions",
-      "A fee paid in SPL tokens instead of lamports",
+      "A congestion tax applied to all transactions by default",
+      "A fee paid in SPL tokens via a token transfer",
     ],
     answerIndex: 1,
     explanation:
@@ -662,10 +662,10 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "Who pays transaction fees on Solana?",
     choices: [
-      "The program being called pays from its program account",
+      "The first signer listed in the message pays by default",
       "The fee payer account specified in the transaction",
-      "The last writable account listed in the message",
-      "The leader validator for the slot",
+      "Fees are deducted pro-rata across all writable accounts",
+      "The leader validator covers base fees and charges priority fees later",
     ],
     answerIndex: 1,
     explanation: "The fee payer is an explicit signer in the transaction.",
@@ -678,10 +678,10 @@ export const questions: Question[] = [
     difficulty: "advanced",
     prompt: "Which factor most directly increases transaction cost under fee markets?",
     choices: [
-      "Number of instructions in the message",
+      "Number of signatures in the transaction",
       "Compute units requested multiplied by unit price",
       "Number of read-only accounts in the message",
-      "Presence of PDAs in the account list",
+      "Use of address lookup tables",
     ],
     answerIndex: 1,
     explanation: "Cost scales with requested compute units and the price per unit (priority fee).",
@@ -694,10 +694,10 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "What does the SPL Token program standardize on Solana?",
     choices: [
-      "Consensus rules for validators and fork choice",
+      "Associated token account derivation and creation rules",
       "Fungible token mint and token account state transitions (mint, transfer, burn, approve)",
-      "Wallet seed phrase and key-derivation formats",
-      "Transaction fee markets and priority fee rules",
+      "On-chain token metadata schema and update authority rules",
+      "Token account rent-exemption and reclaim rules enforced by runtime",
     ],
     answerIndex: 1,
     explanation: "It standardizes token mechanics and account layouts for fungible tokens.",
@@ -711,10 +711,10 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "What makes an Associated Token Account (ATA) valuable for UX?",
     choices: [
-      "It is a special token account type required to hold SPL tokens",
+      "It is the only token account type allowed to hold a wallet’s tokens",
       "It is a deterministic token account address for (wallet, mint, token program), so wallets can find balances predictably",
       "It is a sysvar maintained by the runtime for token balances",
-      "It signs transfers on behalf of the wallet",
+      "It signs transfers on behalf of the wallet by default",
     ],
     answerIndex: 1,
     explanation:
@@ -729,7 +729,7 @@ export const questions: Question[] = [
     difficulty: "advanced",
     prompt: "Which is a typical token authority pattern?",
     choices: [
-      "Wallet owns a token account and the program signs with the wallet key",
+      "Wallet owns a token account and the program uses a delegate authority it controls",
       "PDA owns a token account and the program uses invoke_signed for transfers",
       "Token mint signs transfers as the authority",
       "A sysvar account owns token accounts and authorizes transfers",
@@ -746,10 +746,10 @@ export const questions: Question[] = [
     difficulty: "advanced",
     prompt: "Token-2022 primarily adds…",
     choices: [
-      "A new consensus mechanism for validators",
+      "A new multisig scheme enforced at the token program level",
       "Extensions such as transfer hooks, metadata, memo, and interest",
-      "Mandatory KYC enforced at the protocol layer",
-      "Shorter finality times for blocks",
+      "Mandatory allowlists enforced at the protocol layer",
+      "Account compression for token accounts by default",
     ],
     answerIndex: 1,
     explanation: "Token-2022 adds extensible features (transfer hooks, metadata, interest, etc.).",
@@ -764,8 +764,8 @@ export const questions: Question[] = [
     choices: [
       "ATAs are not supported for Token-2022 mints",
       "Clients must use the correct token program ID",
-      "Token-2022 disables minting instructions",
-      "Token-2022 requires validator votes for transfers",
+      "Token-2022 requires freeze authority signatures on every transfer",
+      "Token-2022 mints cannot be created with decimals",
     ],
     answerIndex: 1,
     explanation: "Token-2022 uses a different program ID; clients must target the correct program.",
@@ -778,9 +778,9 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "What does a token mint account represent?",
     choices: [
-      "A ledger of every token holder’s balance",
+      "A registry of all token accounts for the mint",
       "Global configuration, authorities, and supply metadata for a token type",
-      "A wallet’s consolidated token portfolio",
+      "A wallet’s token balance for that mint",
       "An RPC-side index of token transfers",
     ],
     answerIndex: 1,
@@ -796,9 +796,9 @@ export const questions: Question[] = [
     difficulty: "expert",
     prompt: "What is the purpose of a freeze authority?",
     choices: [
-      "To sign recent blockhashes for the mint",
+      "To change mint decimals after creation",
       "To freeze token accounts and block transfers",
-      "To change validator votes for the mint",
+      "To revoke all delegates automatically",
       "To disable CPI for that token program",
     ],
     answerIndex: 1,
@@ -812,10 +812,10 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "Why were versioned (v0) transactions introduced?",
     choices: [
-      "To replace signatures with hash commitments",
+      "To support multiple fee payers in a single transaction",
       "To enable Address Lookup Tables and larger account lists",
+      "To allow programs to append accounts during execution",
       "To remove recent blockhashes from messages",
-      "To make programs upgradable",
     ],
     answerIndex: 1,
     explanation:
@@ -829,10 +829,10 @@ export const questions: Question[] = [
     difficulty: "advanced",
     prompt: "How do ALTs reduce transaction size?",
     choices: [
-      "By hashing instruction data into shorter forms",
+      "By hashing account keys and including only hashes in the message",
       "By storing addresses on-chain and referencing them by index",
-      "By omitting account metas from the message",
-      "By compressing signatures into fewer bytes",
+      "By omitting signer/writable flags from account metas",
+      "By reusing account keys from a validator cache",
     ],
     answerIndex: 1,
     explanation:
@@ -846,7 +846,7 @@ export const questions: Question[] = [
     difficulty: "advanced",
     prompt: "Who controls an ALT’s contents?",
     choices: [
-      "Any program that references the table",
+      "Any transaction signer that references the table",
       "Its authority set at creation",
       "The system program for the cluster",
       "The fee payer of the transaction",
@@ -862,10 +862,10 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "Which transaction types can use ALTs?",
     choices: [
-      "Legacy transactions",
+      "Legacy transactions that include the ALT in their account list",
       "v0 (versioned) transactions",
-      "Both legacy and v0 transactions",
-      "Vote transactions",
+      "Both legacy and v0 transactions for read-only lookups",
+      "Vote transactions when a feature gate is enabled",
     ],
     answerIndex: 1,
     explanation: "ALTs are supported only in v0 (versioned) transactions.",
@@ -897,7 +897,7 @@ export const questions: Question[] = [
     choices: [
       "A finalized block committed by supermajority",
       "A scheduled leader window in which a leader produces entries/blocks",
-      "A single transaction plus its signature",
+      "A batch of PoH entries produced between votes",
       "A validator vote message for consensus",
     ],
     answerIndex: 1,
@@ -933,8 +933,8 @@ export const questions: Question[] = [
     choices: [
       "Confirmed is irreversible while finalized can still revert",
       "Finalized has stronger consensus weight and is very unlikely to revert",
-      "Confirmed and finalized are identical",
-      "Confirmed means all validators have voted",
+      "Confirmed and finalized are identical at the RPC level",
+      "Confirmed means a supermajority has already voted",
     ],
     answerIndex: 1,
     explanation:
@@ -948,7 +948,7 @@ export const questions: Question[] = [
     difficulty: "advanced",
     prompt: "What role do vote accounts play?",
     choices: [
-      "They store token balances for stakers",
+      "They store delegated stake and authorize withdrawals",
       "They cast votes on forks and earn rewards",
       "They store program data for upgrades",
       "They track address lookup tables",
@@ -965,10 +965,10 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "Consensus weight in Solana is primarily based on…",
     choices: [
-      "Compute units consumed in the epoch",
+      "Vote credits earned in the epoch",
       "Stake weight delegated to validators",
       "Number of transactions processed",
-      "CPU cores per validator",
+      "Validator commission rate",
     ],
     answerIndex: 1,
     explanation: "Stake weight determines voting power and leader schedule priority.",
@@ -999,9 +999,9 @@ export const questions: Question[] = [
     prompt: "If your transaction never seems to reach a leader, which subsystem is most relevant?",
     choices: [
       "TPU (ingest/schedule path)",
-      "TVU (replay/verification path)",
-      "Rent sysvar",
-      "BPF loader",
+      "Gossip (peer discovery and leader info)",
+      "Turbine (block propagation path)",
+      "Repair (shred recovery path)",
     ],
     answerIndex: 0,
     explanation:
@@ -1018,8 +1018,8 @@ export const questions: Question[] = [
     choices: [
       "Ingesting transactions from clients into the leader pipeline",
       "Verifying and replaying blocks to update state",
-      "Estimating fees and compute budgets",
-      "Creating and assigning new accounts on-chain",
+      "Broadcasting shreds to peers",
+      "Gossiping cluster metadata to other validators",
     ],
     answerIndex: 1,
     explanation: "The TVU verifies and replays blocks produced by leaders to update state.",
@@ -1032,7 +1032,7 @@ export const questions: Question[] = [
     difficulty: "advanced",
     prompt: "Why was QUIC adopted for transaction ingestion?",
     choices: [
-      "It enables smart contracts in the TPU pipeline",
+      "It compresses transactions at the transport layer",
       "It provides better flow control and resilience under load",
       "It removes signatures from packet payloads",
       "It accelerates PoH hashing for leaders",
@@ -1048,7 +1048,7 @@ export const questions: Question[] = [
     difficulty: "advanced",
     prompt: "Stake-weighted QoS means…",
     choices: [
-      "All packets are treated equally regardless of stake",
+      "Traffic is prioritized purely by fee payer balance",
       "Traffic from staked validators/RPCs gets priority",
       "Transaction submission is limited to validators",
       "Fees are ignored during scheduling",
@@ -1064,7 +1064,7 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "Gossip is primarily used to…",
     choices: [
-      "Execute transactions for user programs",
+      "Broadcast shreds and blocks to the cluster",
       "Propagate cluster metadata (peers, votes, leader schedule info, etc.)",
       "Store account state snapshots for fast boot",
       "Route CPI calls between programs",
@@ -1082,10 +1082,10 @@ export const questions: Question[] = [
     difficulty: "expert",
     prompt: "Turbine’s role is to…",
     choices: [
-      "Sign transactions on behalf of users",
+      "Ingest transactions from clients into the leader pipeline",
       "Efficiently broadcast blocks via shreds",
-      "Compute transaction fees",
-      "Store snapshots for fast restart",
+      "Propagate cluster metadata to peers",
+      "Repair missing shreds on demand",
     ],
     answerIndex: 1,
     explanation: "Turbine is Solana’s block propagation protocol using shreds.",
@@ -1098,9 +1098,9 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "Commitment levels in RPC allow clients to…",
     choices: [
-      "Choose token programs for instruction encoding",
+      "Select which fork/slot to read by providing a slot number",
       "Select how finalized the queried data should be",
-      "Set compute limits for transactions",
+      "Set compute limits for transactions sent by the client",
       "Bypass fees on RPC calls",
     ],
     answerIndex: 1,
@@ -1114,7 +1114,7 @@ export const questions: Question[] = [
     difficulty: "advanced",
     prompt: "Why simulate transactions before sending?",
     choices: [
-      "To bypass fees for failed transactions",
+      "To pre-lock accounts and reserve compute budget",
       "To detect errors and estimate logs/compute before sending",
       "To finalize immediately without voting",
       "To change the recent blockhash on-chain",
@@ -1130,7 +1130,7 @@ export const questions: Question[] = [
     difficulty: "advanced",
     prompt: "When should you prefer WebSocket subscriptions over polling?",
     choices: [
-      "When you can tolerate slower, periodic updates from polling",
+      "When you need deterministic snapshots at fixed intervals",
       "When you need near-real-time account updates",
       "When you need data for a small set of token accounts",
       "When you are tracking vote accounts for consensus",
@@ -1198,7 +1198,7 @@ export const questions: Question[] = [
     prompt: "In Solana, when is a protocol change actually live?",
     choices: [
       "When a SIMD is merged into the repository",
-      "When the validator release is published",
+      "When a supermajority of validators upgrade",
       "When the feature gate is activated on-chain",
       "When documentation is updated and announced",
     ],
@@ -1216,8 +1216,8 @@ export const questions: Question[] = [
     choices: [
       "They are validator-executed code that flips feature gates",
       "They are proposal documents that track design rationale and lifecycle",
-      "They are mandatory for program upgrades",
-      "They are a governance token standard",
+      "They are on-chain governance instructions that activate features",
+      "They are release tags that denote protocol versions",
     ],
     answerIndex: 1,
     explanation:
@@ -1231,7 +1231,7 @@ export const questions: Question[] = [
     difficulty: "advanced",
     prompt: "Why use feature gates?",
     choices: [
-      "To hide unfinished code from validators",
+      "To ensure validators upgrade in a single slot",
       "To activate changes safely and sequentially",
       "To skip testing of consensus changes",
       "To replace on-chain governance",
@@ -1250,7 +1250,7 @@ export const questions: Question[] = [
       "Validators are forced by the runtime to upgrade immediately",
       "The feature is behind a gate and can be activated later",
       "It reduces their fees during upgrade",
-      "It changes consensus rules as soon as binaries restart",
+      "The ledger format changes immediately on restart",
     ],
     answerIndex: 1,
     explanation:
@@ -1267,7 +1267,7 @@ export const questions: Question[] = [
       "Activation is risk-free even if versions diverge",
       "Potential forks or instability if versions diverge",
       "Fees drop to zero for the epoch",
-      "Transactions become free for all users",
+      "Clients cannot decode any transactions for an epoch",
     ],
     answerIndex: 1,
     explanation: "Activation before broad upgrade can cause divergence or instability.",
@@ -1280,7 +1280,7 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "What is a common security pitfall in Solana programs?",
     choices: [
-      "Verifying account ownership and signer flags before mutating data",
+      "Assuming the client passed the correct accounts without validation",
       "Failing to check account ownership or signer status on critical accounts",
       "Using PDAs for program state",
       "Reading sysvars for cluster metadata",
@@ -1691,7 +1691,7 @@ export const questions: Question[] = [
     choices: [
       "To increase fees on testnet",
       "To validate behavior under realistic conditions",
-      "To reduce compute usage",
+      "To pre-warm account caches before mainnet rollout",
       "To bypass governance procedures",
     ],
     answerIndex: 1,
@@ -1905,10 +1905,10 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "Instruction data is…",
     choices: [
-      "A fixed schema enforced by the runtime",
+      "Borsh-encoded by the runtime before dispatch",
       "Arbitrary bytes interpreted by the program",
-      "Always JSON encoded",
-      "Always a single opcode byte",
+      "A fixed opcode plus arguments taken from account metas",
+      "A JSON payload validated by the system program",
     ],
     answerIndex: 1,
     explanation:
@@ -1922,7 +1922,7 @@ export const questions: Question[] = [
     difficulty: "foundation",
     prompt: "Program logs are best used for…",
     choices: [
-      "Canonical on-chain state representation",
+      "Building a canonical on-chain state index",
       "Debugging and UX hints",
       "Consensus voting data",
       "Fee collection receipts",
@@ -2001,7 +2001,7 @@ export const questions: Question[] = [
     tags: ["simd", "status"],
     difficulty: "advanced",
     prompt: "Which SIMD status most closely implies ‘live on mainnet’?",
-    choices: ["Implemented", "Activated", "Accepted", "Review"],
+    choices: ["Implemented in a validator release", "Activated", "Accepted for review", "Proposed"],
     answerIndex: 1,
     explanation: "Activated indicates the feature gate has been turned on and is live.",
     deepDive: "Implemented only means the code exists in a release.",
