@@ -40,8 +40,6 @@ export default function Home() {
   const [session, setSession] = useState<QuizSession | null>(null);
   const [answers, setAnswers] = useState<Record<string, number | null>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [revealed, setRevealed] = useState<Record<string, boolean>>({});
-  const [flagged, setFlagged] = useState<string[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const poolSize = useMemo(() => {
     return questionBank.filter((question) => {
@@ -66,7 +64,6 @@ export default function Home() {
         }));
         setAnswers(stored.answers);
         setCurrentIndex(stored.currentIndex);
-        setFlagged(stored.flagged);
         setPhase("quiz");
       }
     }
@@ -83,9 +80,8 @@ export default function Home() {
       questionIds: session.questions.map((question) => question.id),
       startedAt: session.startedAt,
       mode: config.mode,
-      flagged,
     });
-  }, [answers, config, currentIndex, flagged, session]);
+  }, [answers, config, currentIndex, session]);
 
   const startQuiz = useCallback(
     (override?: Partial<QuizConfig>, questionsOverride?: Question[]) => {
@@ -93,16 +89,12 @@ export default function Home() {
       const baseQuestions = questionsOverride ?? questionBank;
       const nextSession = buildQuizSession(baseQuestions, nextConfig);
       const nextAnswers: Record<string, number | null> = {};
-      const nextRevealed: Record<string, boolean> = {};
       for (const question of nextSession.questions) {
         nextAnswers[question.id] = null;
-        nextRevealed[question.id] = false;
       }
       setConfig(nextConfig);
       setSession(nextSession);
       setAnswers(nextAnswers);
-      setRevealed(nextRevealed);
-      setFlagged([]);
       setCurrentIndex(0);
       setPhase("quiz");
     },
@@ -115,8 +107,6 @@ export default function Home() {
     setSession(null);
     setAnswers({});
     setCurrentIndex(0);
-    setFlagged([]);
-    setRevealed({});
   }, []);
 
   const currentQuestion = session?.questions[currentIndex];
@@ -124,6 +114,13 @@ export default function Home() {
   const isAnswered = currentAnswer !== null && currentAnswer !== undefined;
   const isCorrect = currentQuestion ? currentAnswer === currentQuestion.answerIndex : false;
   const isAnswerLocked = isAnswered;
+  const reportIssueUrl = useMemo(() => {
+    if (!currentQuestion) return "https://github.com/Eikix/solana-deep-dive-quiz/issues/new";
+    const url = new URL("https://github.com/Eikix/solana-deep-dive-quiz/issues/new");
+    url.searchParams.set("template", "report-question.md");
+    url.searchParams.set("title", `Question report: ${currentQuestion.id}`);
+    return url.toString();
+  }, [currentQuestion]);
 
   const answeredCount = session
     ? session.questions.filter((question) => answers[question.id] !== null).length
@@ -131,24 +128,15 @@ export default function Home() {
   const totalQuestions = session?.questions.length ?? 0;
   const isLastQuestion = currentIndex === Math.max(totalQuestions - 1, 0);
 
-  const revealExplanation =
-    config.mode === "learn" ? isAnswered : revealed[currentQuestion?.id ?? ""];
+  const revealExplanation = config.mode === "learn" ? isAnswered : false;
 
   const handleSelectAnswer = useCallback(
     (choiceIndex: number) => {
       if (!currentQuestion || isAnswerLocked) return;
       setAnswers((prev) => ({ ...prev, [currentQuestion.id]: choiceIndex }));
-      if (config.mode === "learn") {
-        setRevealed((prev) => ({ ...prev, [currentQuestion.id]: true }));
-      }
     },
-    [config.mode, currentQuestion, isAnswerLocked],
+    [currentQuestion, isAnswerLocked],
   );
-
-  const handleToggleReveal = useCallback(() => {
-    if (!currentQuestion) return;
-    setRevealed((prev) => ({ ...prev, [currentQuestion.id]: !prev[currentQuestion.id] }));
-  }, [currentQuestion]);
 
   const handleNext = useCallback(() => {
     if (!session) return;
@@ -195,15 +183,6 @@ export default function Home() {
     };
     saveStats(updated);
   }, [answers, session]);
-
-  const handleFlag = useCallback(() => {
-    if (!currentQuestion) return;
-    setFlagged((prev) =>
-      prev.includes(currentQuestion.id)
-        ? prev.filter((id) => id !== currentQuestion.id)
-        : [...prev, currentQuestion.id],
-    );
-  }, [currentQuestion]);
 
   const handleReviewMistakes = useCallback(() => {
     if (!session) return;
@@ -255,10 +234,6 @@ export default function Home() {
             <h1 className="text-balance text-3xl font-semibold text-white md:text-4xl">
               Protocol Mastery Quiz
             </h1>
-            <p className="mt-2 max-w-2xl text-sm text-slate-300">
-              A long-form, replayable quiz for serious Solana learners. Mix modes, filter topics,
-              and get explanations after every answer.
-            </p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -556,25 +531,16 @@ export default function Home() {
                 <div className="mt-6 flex flex-wrap items-center gap-3">
                   <button
                     type="button"
-                    onClick={handleToggleReveal}
-                    className="rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200 transition hover:border-white/30"
+                    onClick={() => window.open(reportIssueUrl, "_blank", "noreferrer")}
+                    className="rounded-full border border-white/10 px-4 py-2 text-sm text-slate-300 transition hover:border-white/30"
                   >
-                    {revealExplanation ? "Hide Explanation" : "Reveal Explanation"}
+                    Report Question
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleFlag}
-                    className={`rounded-full border px-4 py-2 text-sm transition ${
-                      flagged.includes(currentQuestion.id)
-                        ? "border-amber-300/60 bg-amber-400/10 text-amber-100"
-                        : "border-white/10 text-slate-300 hover:border-amber-300/40"
-                    }`}
-                  >
-                    {flagged.includes(currentQuestion.id) ? "Flagged" : "Flag"}
-                  </button>
-                  <span className="text-sm text-slate-400">
-                    {isAnswered ? (isCorrect ? "✅ Correct" : "❌ Incorrect") : "Not answered"}
-                  </span>
+                  {isAnswered && (
+                    <span className="text-sm text-slate-400">
+                      {isCorrect ? "✅ Correct" : "❌ Incorrect"}
+                    </span>
+                  )}
                 </div>
 
                 {revealExplanation && (
@@ -765,32 +731,6 @@ export default function Home() {
               <div className="rounded-3xl border border-white/10 bg-slate-950/60 p-6">
                 <h3 className="text-lg font-semibold text-white">Your History</h3>
                 <HistoryPanel />
-              </div>
-            </div>
-
-            <div className="rounded-3xl border border-white/10 bg-slate-950/70 p-6">
-              <h3 className="text-lg font-semibold text-white">Review Flagged Questions</h3>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                {flagged.length === 0 && (
-                  <p className="text-sm text-slate-400">No flagged questions this run.</p>
-                )}
-                {flagged.map((id) => {
-                  const question = questionById.get(id);
-                  if (!question) return null;
-                  const selected = answers[id];
-                  return (
-                    <div key={id} className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                      <p className="text-sm font-semibold text-white">{question.prompt}</p>
-                      <p className="mt-2 text-xs text-slate-400">
-                        Your answer:{" "}
-                        {selected !== null ? question.choices[selected] : "Not answered"}
-                      </p>
-                      <p className="mt-2 text-xs text-emerald-200">
-                        Correct: {question.choices[question.answerIndex]}
-                      </p>
-                    </div>
-                  );
-                })}
               </div>
             </div>
           </section>
