@@ -44,9 +44,7 @@ export function buildQuizSession(questions: Question[], config: QuizConfig): Qui
 
   const filtered = questions.filter((question) => {
     const difficultyMatch = config.difficulties.includes(question.difficulty);
-    const tagMatch =
-      config.tags.length === 0 || config.tags.some((tag) => question.tags.includes(tag));
-    return difficultyMatch && tagMatch;
+    return difficultyMatch;
   });
 
   const shuffled = shuffleWithRng(filtered, rng);

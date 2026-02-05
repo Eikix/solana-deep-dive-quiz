@@ -26,7 +26,6 @@ type Phase = "setup" | "quiz" | "results";
 
 export default function Home() {
   const bankStats = useMemo(() => getQuestionBankStats(questionBank), []);
-  const allTags = useMemo(() => bankStats.tags.map(([tag]) => tag), [bankStats.tags]);
   const questionById = useMemo(() => new Map(questionBank.map((q) => [q.id, q])), []);
 
   const [phase, setPhase] = useState<Phase>("setup");
@@ -44,11 +43,9 @@ export default function Home() {
   const poolSize = useMemo(() => {
     return questionBank.filter((question) => {
       const difficultyMatch = config.difficulties.includes(question.difficulty);
-      const tagMatch =
-        config.tags.length === 0 || config.tags.some((tag) => question.tags.includes(tag));
-      return difficultyMatch && tagMatch;
+      return difficultyMatch;
     }).length;
-  }, [config.difficulties, config.tags]);
+  }, [config.difficulties]);
 
   useEffect(() => {
     const stored = loadSession();
@@ -342,36 +339,6 @@ export default function Home() {
                         <p className="mt-1 text-sm text-slate-300">{item.description}</p>
                       </button>
                     ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm font-medium text-slate-200">Topic focus (optional)</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {allTags.map((tag) => {
-                      const active = config.tags.includes(tag);
-                      return (
-                        <button
-                          key={tag}
-                          type="button"
-                          onClick={() =>
-                            setConfig((prev) => ({
-                              ...prev,
-                              tags: active
-                                ? prev.tags.filter((item) => item !== tag)
-                                : [...prev.tags, tag],
-                            }))
-                          }
-                          className={`rounded-full border px-3 py-1.5 text-xs uppercase tracking-wide transition ${
-                            active
-                              ? "border-emerald-400/60 bg-emerald-400/10 text-emerald-100"
-                              : "border-white/10 text-slate-300 hover:border-white/30"
-                          }`}
-                        >
-                          {tag}
-                        </button>
-                      );
-                    })}
                   </div>
                 </div>
 
