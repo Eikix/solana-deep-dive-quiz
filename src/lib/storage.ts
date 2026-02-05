@@ -11,7 +11,6 @@ export interface StoredSession {
   questionIds: string[];
   startedAt: number;
   mode: string;
-  flagged: string[];
 }
 
 export interface StoredStats {
