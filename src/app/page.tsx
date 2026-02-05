@@ -123,6 +123,7 @@ export default function Home() {
   const currentAnswer = currentQuestion ? answers[currentQuestion.id] : null;
   const isAnswered = currentAnswer !== null && currentAnswer !== undefined;
   const isCorrect = currentQuestion ? currentAnswer === currentQuestion.answerIndex : false;
+  const isAnswerLocked = isAnswered;
 
   const answeredCount = session
     ? session.questions.filter((question) => answers[question.id] !== null).length
@@ -135,13 +136,13 @@ export default function Home() {
 
   const handleSelectAnswer = useCallback(
     (choiceIndex: number) => {
-      if (!currentQuestion) return;
+      if (!currentQuestion || isAnswerLocked) return;
       setAnswers((prev) => ({ ...prev, [currentQuestion.id]: choiceIndex }));
       if (config.mode === "learn") {
         setRevealed((prev) => ({ ...prev, [currentQuestion.id]: true }));
       }
     },
-    [config.mode, currentQuestion],
+    [config.mode, currentQuestion, isAnswerLocked],
   );
 
   const handleToggleReveal = useCallback(() => {
@@ -543,7 +544,8 @@ export default function Home() {
                         key={choice}
                         type="button"
                         onClick={() => handleSelectAnswer(index)}
-                        className={`rounded-2xl border px-5 py-4 text-left text-sm break-words transition ${variant}`}
+                        disabled={isAnswerLocked}
+                        className={`rounded-2xl border px-5 py-4 text-left text-sm break-words transition disabled:cursor-not-allowed disabled:opacity-80 ${variant}`}
                       >
                         {choice}
                       </button>
