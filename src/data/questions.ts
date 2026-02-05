@@ -1694,16 +1694,18 @@ export const questions: Question[] = [
     section: "Security & Pitfalls",
     tags: ["security", "pda"],
     difficulty: "expert",
-    prompt: "A PDA collision (two different seed sets producing the same PDA) is…",
+    prompt: "Which statement about PDA “collisions” is most accurate?",
     choices: [
-      "Common and expected",
-      "Cryptographically infeasible in practice",
-      "How PDAs are created",
-      "A feature of PDAs",
+      "A cryptographic hash collision is feasible with enough brute force",
+      "Cryptographic collisions are infeasible, but ambiguous seed schemas can still cause unintended address overlap",
+      "The bump guarantees uniqueness across all seed schemas",
+      "The runtime inserts delimiters between seeds to prevent any overlap",
     ],
     answerIndex: 1,
-    explanation: "PDA collisions are cryptographically infeasible in practice.",
-    deepDive: "Seed choices should still be deterministic and unique.",
+    explanation:
+      "A true cryptographic collision is infeasible, but developers can create practical “collisions” via ambiguous seed schemas (e.g., variable-length seeds without clear boundaries).",
+    deepDive:
+      "Audit rule: use explicit namespaces and unambiguous seed boundaries (fixed-size components or length-prefixing) to prevent cross-type overlap.",
   },
   {
     id: "Q103",
